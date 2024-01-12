@@ -1,5 +1,6 @@
 venv/
 .env
+files/
 
 .idea/
 .ipynb_checkpoints/
