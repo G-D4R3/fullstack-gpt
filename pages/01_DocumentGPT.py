@@ -12,6 +12,13 @@ st.set_page_config(
 
 st.title("DocumentGPT")
 
+
+def paint_history():
+    for message in st.session_state['messages']:
+        send_message(message['message'], message['role'], save=False)
+
+
+@st.cache_data(show_spinner="Embedding file...")
 def embed_file(file):
     ''' 현재 data가 변경될 때마다 매번 embed file function을 실행
      사용자가 message를 보낼 때마다 function 실행 -> 불필요한 반복 실행'''
@@ -42,19 +49,40 @@ def embed_file(file):
     return retriever
 
 
+def send_message(message, role, save=True):
+    with st.chat_message(role):
+        st.markdown(message)
+
+    if save:
+        st.session_state['messages'].append(dict(
+            message=message,
+            role=role
+        ))
+
+
 # 사용자의 파일 업로드 요청
 st.markdown("""
 Welcome!
 
 Use this chatbot to ask questions to an AI about your files!
+
+Upload your files on the sidebar!
 """)
 
-file = st.file_uploader(
-    "Upload a .txt, .pdf, .docx file",
-    type=["pdf", "txt", "docx"]
-)
+with st.sidebar:
+    file = st.file_uploader(
+        "Upload a .txt, .pdf, .docx file",
+        type=["pdf", "txt", "docx"]
+    )
 
 if file:
     retriever = embed_file(file)
-    s = retriever.invoke("winston")
-    s
+    send_message("I'm ready! Ask away!", "ai", save=False)
+    paint_history()
+
+    message = st.chat_input("Ask Anything about your file...")
+    if message:
+        send_message(message, "human")
+        send_message("lalalala", "ai")
+else:
+    st.session_state['messages'] = []
