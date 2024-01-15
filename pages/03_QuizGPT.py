@@ -24,7 +24,7 @@ class JsonOutputParser(BaseOutputParser):
 
 output_parser = JsonOutputParser()
 
-@st.cache_data(show_spinner="Embedding file...")
+@st.cache_data(show_spinner="Loading file...")
 def split_file(file):
     ''' 현재 data가 변경될 때마다 매번 embed file function을 실행
      사용자가 message를 보낼 때마다 function 실행 -> 불필요한 반복 실행'''
@@ -41,6 +41,17 @@ def split_file(file):
 
     loader = UnstructuredFileLoader(file_path)
     docs = loader.load_and_split(text_splitter=splitter)
+    return docs
+
+@st.cache_data(show_spinner="Making quiz...")
+def run_quiz_chain(_docs, topic):
+    chain = {"context": questions_chain} | formatting_chain | output_parser
+    return chain.invoke(_docs)
+
+@st.cache_data(show_spinner="Searching Wikipedia...")
+def wiki_search(term):
+    retriever = WikipediaRetriever(top_k_results=5)
+    docs = retriever.get_relevant_documents(term)
     return docs
 
 
@@ -232,9 +243,7 @@ with st.sidebar:
     else:
         topic = st.text_input("Search Wikipedia...")
         if topic:
-            retriever = WikipediaRetriever(top_k_results=1)
-            with st.status("Searching Wikipedia..."):
-                docs = retriever.get_relevant_documents(topic)
+            docs = wiki_search(topic)
 
 if not docs:
     st.markdown(
@@ -252,7 +261,5 @@ else:
     start = st.button("Generate Quiz")
 
     if start:
-        chain = {"context": questions_chain} | formatting_chain | output_parser
-
-        response = chain.invoke(docs)
+        response = run_quiz_chain(docs, topic if topic else file.name)
         st.write(response)
