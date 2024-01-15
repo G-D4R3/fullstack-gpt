@@ -1,10 +1,12 @@
+import json
+
 import streamlit as st
 from langchain.callbacks import StreamingStdOutCallbackHandler
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import UnstructuredFileLoader
 from langchain.prompts import ChatPromptTemplate
 from langchain.retrievers import WikipediaRetriever
-from langchain.storage import LocalFileStore
+from langchain.schema import BaseOutputParser
 from langchain.text_splitter import CharacterTextSplitter
 
 st.set_page_config(
@@ -14,6 +16,13 @@ st.set_page_config(
 
 st.title("QuizGPT")
 
+
+class JsonOutputParser(BaseOutputParser):
+    def parse(self, text):
+        text = text.replace("```json", "").replace("```", "")
+        return json.loads(text)
+
+output_parser = JsonOutputParser()
 
 @st.cache_data(show_spinner="Embedding file...")
 def split_file(file):
@@ -239,14 +248,11 @@ if not docs:
         """
     )
 else:
-    st.write(docs)
 
     start = st.button("Generate Quiz")
 
     if start:
-        questions_response = questions_chain.invoke(docs)
-        st.write(questions_response.content)
-        formatting_response = formatting_chain.invoke({
-            "context": questions_response.content
-        })
-        st.write(formatting_response.content)
+        chain = {"context": questions_chain} | formatting_chain | output_parser
+
+        response = chain.invoke(docs)
+        st.write(response)
