@@ -5,3 +5,4 @@ files/
 .idea/
 .ipynb_checkpoints/
 .cache/
+.streamlit/
