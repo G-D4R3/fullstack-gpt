@@ -29,5 +29,3 @@ message = st.chat_input("Send an message to the ai")
 if message:
     send_message(message, "human")
     send_message(f'You said "{message}", wright?', "ai")
-    with st.sidebar:
-        st.write(st.session_state)
