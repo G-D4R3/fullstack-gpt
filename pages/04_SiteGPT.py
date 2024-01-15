@@ -1,5 +1,5 @@
 import streamlit as st
-from langchain.document_loaders import AsyncChromiumLoader
+from langchain.document_loaders import SitemapLoader
 from langchain.document_transformers import Html2TextTransformer
 
 st.set_page_config(
@@ -11,17 +11,23 @@ st.title("SiteGPT")
 
 html2text_transformer = Html2TextTransformer()
 
+@st.cache_data(show_spinner="Loading website")
+def load_website(url):
+    loader = SitemapLoader(url)
+    loader.requests_per_second = 1
+    docs = loader.load_and_split()
+    return docs
+
 with st.sidebar:
     url = st.text_input("Write down a URL", placeholder="https://example.com")
 
 
 if url:
-    # async chroimium loader
-    # browser를 실행 중이기 때문에 많은 url로 동작할 때 느려질 수 있음
-    # 코드와 text를 얻었지만 브라우저를 볼 수 없었던 이유 : playwrite를 headless mode로 실행했기 때문
-    # headless: 브라우저 프로세스가 로컬로부터 시작되었다는 것 -> 느려질 수 있음
-    loader = AsyncChromiumLoader(urls=[url])
-    docs = loader.load()
-    transformed = html2text_transformer.transform_documents(docs)
-    st.write(transformed)
+    if ".xml" not in url:
+        with st.sidebar:
+            st.error("Please write down a Sitemap URL")
+    else:
+        docs = load_website(url)
+        st.write(docs)
+
 
